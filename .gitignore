@@ -24,6 +24,7 @@ logs/
 checkpoints/
 reports/figures/
 data_cache/
+data/
 
 # Generated manifests and results
 manifests/
