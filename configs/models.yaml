@@ -1,0 +1,72 @@
+# Model configuration catalogue
+common:
+  pretrained: true
+  normalization: imagenet
+  label_smoothing: 0.1
+  grad_clip_norm: 1.0
+  llrd:
+    decay: 0.75
+    min_lr_scale: 0.1
+  torch_compile: true
+  amp_dtype: bfloat16
+  checkpointing: false
+
+schedulers: &schedulers
+  explore:
+    name: cosine
+    epochs: 80
+    warmup_epochs: 5
+  confirm:
+    name: onecycle
+    epochs: 150
+    pct_start: 0.15
+    final_div_factor: 25
+
+architectures:
+  resnet18:
+    family: convnet
+    backbone: resnet18
+    dropout: 0.2
+    optimizer:
+      name: adamw
+      weight_decay: 0.05
+    scheduler: *schedulers
+    batch_size:
+      explore: 256
+      confirm: 192
+  resnet50:
+    family: convnet
+    backbone: resnet50
+    dropout: 0.2
+    optimizer:
+      name: adamw
+      weight_decay: 0.05
+    scheduler: *schedulers
+    batch_size:
+      explore: 128
+      confirm: 96
+  convnext_tiny:
+    family: convnext
+    backbone: convnext_tiny
+    dropout: 0.1
+    optimizer:
+      name: adamw
+      weight_decay: 0.05
+    scheduler: *schedulers
+    batch_size:
+      explore: 128
+      confirm: 96
+  vit_tiny:
+    family: vit
+    backbone: vit_tiny_patch16_224
+    dropout: 0.0
+    optimizer:
+      name: adamw
+      weight_decay: 0.02
+    scheduler: *schedulers
+    batch_size:
+      explore: 96
+      confirm: 64
+    extras:
+      gradient_checkpointing: false
+      mixup_enabled: false

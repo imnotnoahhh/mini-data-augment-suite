@@ -1,0 +1,54 @@
+experiment:
+  project_name: small_data_aug
+  phases: [explore, confirm]
+  outputs:
+    checkpoints: checkpoints
+    logs: logs
+    tables: reports/tables
+    figures: reports/figures
+
+hardware:
+  device: cuda
+  compile_mode: reduce-overhead
+  channels_last: true
+  tf32: true
+  benchmark: true
+  deterministic: false
+  dataloader:
+    num_workers: 10
+    pin_memory: true
+    persistent_workers: true
+    prefetch_factor: 4
+
+optimizer:
+  name: adamw
+  base_lr: 0.001
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+
+scheduler_defaults:
+  gradient_accumulation: 1
+  max_epochs:
+    explore: 80
+    confirm: 150
+  best_metric: val/top1
+  ema:
+    enabled: false
+
+logging:
+  use_wandb: false
+  tensorboard: false
+  jsonl_dir: logs/jsonl
+  stdout_interval: 10
+
+search:
+  topk: 6
+  epsilon: 0.4
+  max_depth: 4
+
+seed_control:
+  numpy: true
+  python: true
+  torch: true
+  cudnn_deterministic: false
+  cudnn_benchmark: true

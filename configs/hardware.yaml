@@ -1,0 +1,22 @@
+device:
+  backend: cuda
+  allow_tf32: true
+  matmul_precision: medium
+  channels_last: true
+  deterministic: false
+  benchmark: true
+  grad_accumulation: 1
+
+amp:
+  enabled: true
+  dtype: bfloat16
+
+compile:
+  enabled: true
+  mode: reduce-overhead
+
+resources:
+  gpu_name: NVIDIA L20
+  gpu_memory_gb: 48
+  cpu_cores: 16
+  ram_gb: 128

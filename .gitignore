@@ -1,0 +1,33 @@
+# Python build and cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+.venv/
+.env/
+.conda/
+
+# Packaging artifacts
+build/
+dist/
+*.egg-info/
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Experiment outputs
+logs/
+checkpoints/
+reports/figures/
+data_cache/
+
+# Generated manifests and results
+manifests/
+reports/tables/*.csv
+
+# Misc
+*.log
