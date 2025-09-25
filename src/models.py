@@ -21,11 +21,14 @@ class SafeSequentialLR(LRScheduler):
         self.schedulers = schedulers
         self.milestones = milestones
         self.current_step = 0
-        super().__init__(optimizer)
+        # 手动设置optimizer，避免调用父类的__init__中的step()
+        self.optimizer = optimizer
+        self._step_count = 0
         
     def step(self):
         """Step the scheduler without epoch parameter."""
         self.current_step += 1
+        self._step_count += 1
         for i, milestone in enumerate(self.milestones):
             if self.current_step <= milestone:
                 self.schedulers[i].step()
