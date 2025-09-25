@@ -16,12 +16,12 @@ from torchvision.models import (
     ConvNeXt_Tiny_Weights,
     ResNet18_Weights,
     ResNet50_Weights,
-    ViT_T_16_Weights,
     convnext_tiny,
     resnet18,
     resnet50,
     vit_t_16,
 )
+from torchvision.models.vision_transformer import ViT_T_16_Weights
 
 import yaml
 
