@@ -19,9 +19,8 @@ from torchvision.models import (
     convnext_tiny,
     resnet18,
     resnet50,
-    vit_t_16,
 )
-from torchvision.models.vision_transformer import ViT_T_16_Weights
+from torchvision.models.vision_transformer import ViT_T_16_Weights, vit_t_16
 
 import yaml
 
