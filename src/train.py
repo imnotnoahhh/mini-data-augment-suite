@@ -106,7 +106,7 @@ def train_one_epoch(
     scheduler: torch.optim.lr_scheduler.LRScheduler,
     grad_clip: float,
     accumulation_steps: int,
-    scaler: torch.cuda.amp.GradScaler,
+    scaler: torch.amp.GradScaler,
     logger: RunLogger,
     epoch: int,
 ) -> Mapping[str, float]:
@@ -125,7 +125,7 @@ def train_one_epoch(
         images = images.to(device, non_blocking=True)
         targets = targets.to(device, non_blocking=True)
 
-        with torch.autocast(device_type=device.type, dtype=bundle.amp_dtype, enabled=device.type == "cuda"):
+        with torch.amp.autocast(device_type=device.type, dtype=bundle.amp_dtype, enabled=device.type == "cuda"):
             logits = model(images)
             loss = criterion(logits, targets)
             loss = loss / accumulation_steps
@@ -187,7 +187,7 @@ def evaluate(
         for images, targets in loader:
             images = images.to(device, non_blocking=True)
             targets = targets.to(device, non_blocking=True)
-            with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=device.type == "cuda"):
+            with torch.amp.autocast(device_type=device.type, dtype=amp_dtype, enabled=device.type == "cuda"):
                 logits = model(images)
                 loss = criterion(logits, targets)
             total_loss += loss.item() * targets.size(0)
@@ -354,7 +354,10 @@ def run_training(
     best_state = None
     best_epoch = 0
 
-    scaler = torch.cuda.amp.GradScaler(enabled=bundle.amp_dtype == torch.float16 and device.type == "cuda")
+    scaler = torch.amp.GradScaler(
+        "cuda",
+        enabled=bundle.amp_dtype == torch.float16 and device.type == "cuda",
+    )
 
     start_time = time.time()
 

@@ -12,16 +12,47 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import LRScheduler
+
+
+class SafeSequentialLR(LRScheduler):
+    """A SequentialLR wrapper that ensures step() is called without epoch parameter."""
+    
+    def __init__(self, optimizer, schedulers, milestones):
+        self.schedulers = schedulers
+        self.milestones = milestones
+        self.current_step = 0
+        super().__init__(optimizer)
+        
+    def step(self):
+        """Step the scheduler without epoch parameter."""
+        self.current_step += 1
+        for i, milestone in enumerate(self.milestones):
+            if self.current_step <= milestone:
+                self.schedulers[i].step()
+                break
+        else:
+            # Use the last scheduler if we're past all milestones
+            if self.schedulers:
+                self.schedulers[-1].step()
+    
+    def get_last_lr(self):
+        """Get the last learning rate from the current scheduler."""
+        for i, milestone in enumerate(self.milestones):
+            if self.current_step <= milestone:
+                return self.schedulers[i].get_last_lr()
+        return self.schedulers[-1].get_last_lr() if self.schedulers else []
+
+
 from torchvision.models import (
     ConvNeXt_Tiny_Weights,
     ResNet18_Weights,
     ResNet50_Weights,
     convnext_tiny,
+    get_model,
+    get_model_weights,
     resnet18,
     resnet50,
 )
-from torchvision.models.vision_transformer import ViT_T_16_Weights, vit_t_16
-
 import yaml
 
 
@@ -81,9 +112,13 @@ def _build_convnext(num_classes: int, dropout: float, pretrained: bool) -> nn.Mo
     return model
 
 
-def _build_vit(num_classes: int, dropout: float, pretrained: bool) -> nn.Module:
-    weights = ViT_T_16_Weights.IMAGENET1K_V1 if pretrained else None
-    model = vit_t_16(weights=weights)
+def _build_vit(backbone: str, num_classes: int, dropout: float, pretrained: bool) -> nn.Module:
+    weights = None
+    if pretrained:
+        weights_enum = get_model_weights(backbone)
+        weights = weights_enum.DEFAULT
+
+    model = get_model(backbone, weights=weights)
     embed_dim = model.heads.head.in_features
     model.heads.head = nn.Sequential(
         nn.LayerNorm(embed_dim),
@@ -162,7 +197,7 @@ def _make_scheduler_factory(arch_cfg: Mapping[str, object], phase: str) -> Sched
         schedulers.append(cosine)
         if not milestones:
             return cosine
-        return optim.lr_scheduler.SequentialLR(optimizer, schedulers=schedulers, milestones=milestones)
+        return SafeSequentialLR(optimizer, schedulers=schedulers, milestones=milestones)
 
     def onecycle_factory(optimizer: optim.Optimizer, epochs: int, steps_per_epoch: int) -> LRScheduler:
         max_lr = [group["lr"] for group in optimizer.param_groups]
@@ -211,7 +246,8 @@ def create_model(
     elif family == "convnext":
         model = _build_convnext(num_classes, dropout=dropout, pretrained=pretrained)
     elif family == "vit":
-        model = _build_vit(num_classes, dropout=dropout, pretrained=pretrained)
+        backbone = str(arch_cfg["backbone"])
+        model = _build_vit(backbone, num_classes, dropout=dropout, pretrained=pretrained)
     else:
         raise ValueError(f"Unsupported model family '{family}'")
 

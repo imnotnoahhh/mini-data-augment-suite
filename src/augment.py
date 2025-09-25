@@ -68,16 +68,18 @@ def _merge_overrides(base: MutableMapping[str, object], overrides: Mapping[str, 
         stage_params.update(params)
 
 
-def _instantiate_stage(name: str, spec: Mapping[str, object], stage_type: str) -> Optional[T.Transform]:
+def _instantiate_stage(stage_key: str, spec: Mapping[str, object], stage_type: str) -> Optional[T.Transform]:
     params = spec.get("params", {})
     antialias = bool(params.get("antialias", True))
+    stage_key = stage_key.lower()
+    stage_name = str(spec.get("name", stage_key)).lower()
 
-    if name == "resize":
-        if stage_type == "train" and spec.get("name") == "random_resized_crop":
-            size = params.get("size", 224)
+    if stage_key == "resize" or stage_name in {"resize", "random_resized_crop"}:
+        size = params.get("size", 224)
+        interpolation = _resolve_interpolation(params.get("interpolation", "bicubic"))
+        if stage_type == "train" and stage_name == "random_resized_crop":
             scale = tuple(params.get("scale", [0.8, 1.0]))
             ratio = tuple(params.get("ratio", [1.0, 1.0]))
-            interpolation = _resolve_interpolation(params.get("interpolation", "bicubic"))
             return T.RandomResizedCrop(
                 size=size,
                 scale=scale,
@@ -85,17 +87,15 @@ def _instantiate_stage(name: str, spec: Mapping[str, object], stage_type: str) -
                 interpolation=interpolation,
                 antialias=antialias,
             )
-        size = params.get("size", 224)
-        interpolation = _resolve_interpolation(params.get("interpolation", "bicubic"))
         return T.Resize(size=(size, size), interpolation=interpolation, antialias=antialias)
 
-    if name == "hflip":
+    if stage_key == "hflip" or stage_name in {"hflip", "horizontal_flip", "random_horizontal_flip"}:
         p = float(params.get("p", 0.5))
         if p <= 0:
             return None
         return T.RandomHorizontalFlip(p=p)
 
-    if name == "affine":
+    if stage_key == "affine" or stage_name in {"affine", "random_affine"}:
         degrees = params.get("degrees", 0)
         translate = params.get("translate", [0.0, 0.0])
         shear = params.get("shear", [0.0, 0.0])
@@ -116,7 +116,7 @@ def _instantiate_stage(name: str, spec: Mapping[str, object], stage_type: str) -
             interpolation=interpolation,
         )
 
-    if name == "color":
+    if stage_key == "color" or stage_name in {"color", "color_jitter"}:
         brightness = float(params.get("brightness", 0.0))
         contrast = float(params.get("contrast", 0.0))
         saturation = float(params.get("saturation", 0.0))
@@ -127,7 +127,7 @@ def _instantiate_stage(name: str, spec: Mapping[str, object], stage_type: str) -
             return None
         return T.ColorJitter(brightness=brightness, contrast=contrast, saturation=saturation, hue=hue)
 
-    if name == "blur":
+    if stage_key == "blur" or stage_name in {"blur", "gaussian_blur"}:
         p = float(params.get("p", 0.0))
         if stage_type != "train" or p <= 0.0:
             return None
@@ -136,13 +136,13 @@ def _instantiate_stage(name: str, spec: Mapping[str, object], stage_type: str) -
         blur = T.GaussianBlur(kernel_size=kernel_size, sigma=tuple(sigma))
         return T.RandomApply([blur], p=p)
 
-    if name == "grayscale":
+    if stage_key == "grayscale" or stage_name in {"grayscale", "random_grayscale"}:
         p = float(params.get("p", 0.0))
         if stage_type != "train" or p <= 0.0:
             return None
         return T.RandomGrayscale(p=p)
 
-    if name == "erasing":
+    if stage_key == "erasing" or stage_name in {"erasing", "random_erasing"}:
         p = float(params.get("p", 0.0))
         if stage_type != "train" or p <= 0.0:
             return None
@@ -151,12 +151,12 @@ def _instantiate_stage(name: str, spec: Mapping[str, object], stage_type: str) -
         value = params.get("value", "random")
         return T.RandomErasing(p=p, scale=scale, ratio=ratio, value=value)
 
-    if name == "normalize":
+    if stage_key == "normalize" or stage_name == "normalize":
         mean = params.get("mean", [0.485, 0.456, 0.406])
         std = params.get("std", [0.229, 0.224, 0.225])
         return T.Normalize(mean=mean, std=std)
 
-    raise ValueError(f"Unknown augmentation stage '{name}'")
+    raise ValueError(f"Unknown augmentation stage '{stage_name}' (key '{stage_key}')")
 
 
 def build_pipeline(
@@ -218,8 +218,7 @@ def build_pipeline(
 
     for key in ordered_keys:
         spec = baseline[key]
-        stage_name = spec.get("name", key)
-        op = _instantiate_stage(stage_name, spec, stage_type)
+        op = _instantiate_stage(key, spec, stage_type)
         if op is None:
             continue
         if isinstance(op, T.Normalize):
