@@ -5,13 +5,29 @@ from __future__ import annotations
 import ast
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, Iterable, Mapping, MutableMapping, Optional, Sequence
+from typing import Dict, Mapping, MutableMapping, Optional, Sequence
 
 import torch
 from torchvision.transforms import InterpolationMode
 from torchvision.transforms import v2 as T
 
 import yaml
+
+
+def _is_zero_like(value: object) -> bool:
+    if isinstance(value, (int, float)):
+        return float(value) == 0.0
+    if isinstance(value, (list, tuple)):
+        return all(_is_zero_like(v) for v in value)
+    return False
+
+
+def _normalize_affine_arg(value: object) -> object:
+    if isinstance(value, list):
+        return tuple(value)
+    if isinstance(value, tuple):
+        return tuple(value)
+    return value
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -97,20 +113,20 @@ def _instantiate_stage(stage_key: str, spec: Mapping[str, object], stage_type: s
 
     if stage_key == "affine" or stage_name in {"affine", "random_affine"}:
         degrees = params.get("degrees", 0)
-        translate = params.get("translate", [0.0, 0.0])
-        shear = params.get("shear", [0.0, 0.0])
+        translate = _normalize_affine_arg(params.get("translate", [0.0, 0.0]))
+        shear = _normalize_affine_arg(params.get("shear", [0.0, 0.0]))
         interpolation = _resolve_interpolation(params.get("interpolation", "bicubic"))
-        if stage_type != "train" or (degrees == 0 and all(t == 0 for t in translate) and all(s == 0 for s in shear)):
-            if stage_type == "train" and (degrees != 0 or any(t != 0 for t in translate) or any(s != 0 for s in shear)):
+        if stage_type != "train" or (_is_zero_like(degrees) and _is_zero_like(translate) and _is_zero_like(shear)):
+            if stage_type == "train" and (not _is_zero_like(degrees) or not _is_zero_like(translate) or not _is_zero_like(shear)):
                 return T.RandomAffine(
-                    degrees=degrees,
+                    degrees=_normalize_affine_arg(degrees),
                     translate=translate,
                     shear=shear,
                     interpolation=interpolation,
                 )
             return None
         return T.RandomAffine(
-            degrees=degrees,
+            degrees=_normalize_affine_arg(degrees),
             translate=translate,
             shear=shear,
             interpolation=interpolation,
