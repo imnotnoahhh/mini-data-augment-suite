@@ -5,6 +5,9 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
+import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Sequence
 
@@ -16,6 +19,25 @@ from .train import TrainRunConfig, run_training
 from .train import load_yaml as load_train_yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@contextmanager
+def _file_lock(path: Path, poll_interval: float = 0.25):
+    lock_path = path.with_suffix(path.suffix + ".lock")
+    while True:
+        try:
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            break
+        except FileExistsError:
+            time.sleep(poll_interval)
+    try:
+        yield
+    finally:
+        os.close(fd)
+        try:
+            os.remove(lock_path)
+        except FileNotFoundError:
+            pass
 
 
 def to_token(op: str, param_name: str, value) -> str:
@@ -118,11 +140,26 @@ def run_sweep(args: argparse.Namespace) -> None:
 
     table_path = ROOT / "reports" / "tables" / "single_op_sweep.csv"
     df = pd.DataFrame(records)
-    if table_path.exists():
-        existing = pd.read_csv(table_path)
-        df = pd.concat([existing, df], ignore_index=True)
-    table_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(table_path, index=False)
+    with _file_lock(table_path):
+        if table_path.exists():
+            existing = pd.read_csv(table_path)
+            df = pd.concat([existing, df], ignore_index=True)
+            df = df.drop_duplicates(
+                subset=[
+                    "dataset",
+                    "model",
+                    "phase",
+                    "kshot",
+                    "seed",
+                    "op",
+                    "param_name",
+                    "param_value",
+                    "run_id",
+                ],
+                keep="last",
+            )
+        table_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(table_path, index=False)
 
 
 def parse_value(value_str: str):

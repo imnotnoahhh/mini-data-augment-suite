@@ -30,6 +30,30 @@ def _normalize_affine_arg(value: object) -> object:
     return value
 
 
+def _normalize_translate_arg(value: object) -> tuple[float, float]:
+    if value is None:
+        return (0.0, 0.0)
+    if isinstance(value, (int, float)):
+        val = float(value)
+        return (val, val)
+    if isinstance(value, str):
+        try:
+            val = float(value)
+        except ValueError as exc:  # keep message terse; caller will surface context
+            raise ValueError("translate string value must be numeric") from exc
+        return (val, val)
+    if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):
+        seq = tuple(value)
+        if not seq:
+            return (0.0, 0.0)
+        if len(seq) == 1:
+            val = float(seq[0])
+            return (val, val)
+        # Use the first two entries for XY translate, ignoring extras to keep the run alive.
+        return (float(seq[0]), float(seq[1]))
+    raise TypeError("translate must be numeric or a sequence of numbers")
+
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_AUG_CFG = ROOT / "configs" / "augment" / "aug_search.yaml"
 
@@ -113,7 +137,7 @@ def _instantiate_stage(stage_key: str, spec: Mapping[str, object], stage_type: s
 
     if stage_key == "affine" or stage_name in {"affine", "random_affine"}:
         degrees = params.get("degrees", 0)
-        translate = _normalize_affine_arg(params.get("translate", [0.0, 0.0]))
+        translate = _normalize_translate_arg(params.get("translate", [0.0, 0.0]))
         shear = _normalize_affine_arg(params.get("shear", [0.0, 0.0]))
         interpolation = _resolve_interpolation(params.get("interpolation", "bicubic"))
         if stage_type != "train" or (_is_zero_like(degrees) and _is_zero_like(translate) and _is_zero_like(shear)):
