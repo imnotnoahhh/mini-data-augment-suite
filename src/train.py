@@ -354,6 +354,21 @@ def run_training(
     best_state = None
     best_epoch = 0
 
+    early_cfg = train_cfg.get("early_stop", {})
+    early_enabled = bool(early_cfg.get("enabled", False))
+    early_patience = int(early_cfg.get("patience", 10))
+    early_min_delta = float(early_cfg.get("min_delta", 0.0))
+    early_warmup = int(early_cfg.get("warmup_epochs", 0))
+    early_mode = early_cfg.get("mode", "max").lower()
+    if early_mode not in {"max", "min"}:
+        raise ValueError("early_stop.mode must be 'max' or 'min'")
+    if early_patience < 1:
+        raise ValueError("early_stop.patience must be >= 1")
+    monitor_higher_is_better = early_mode == "max"
+    epochs_since_improve = 0
+    early_stop_triggered = False
+    epochs_completed = 0
+
     scaler = torch.amp.GradScaler(
         "cuda",
         enabled=bundle.amp_dtype == torch.float16 and device.type == "cuda",
@@ -378,10 +393,17 @@ def run_training(
         )
         val_metrics = evaluate(bundle.model, val_loader, criterion, device, bundle.amp_dtype, run_logger, epoch=epoch, split="val")
 
-        if val_metrics["top1"] > best_val_top1:
-            best_val_top1 = val_metrics["top1"]
+        current_score = val_metrics["top1"]
+        if monitor_higher_is_better:
+            improvement = current_score > (best_val_top1 + early_min_delta)
+        else:
+            improvement = current_score < (best_val_top1 - early_min_delta)
+
+        if improvement or best_state is None:
+            best_val_top1 = current_score
             best_state = deepcopy(bundle.model.state_dict())
             best_epoch = epoch
+            epochs_since_improve = 0
             save_checkpoint(
                 checkpoints_root / run_id / "best_val.pt",
                 {
@@ -391,6 +413,8 @@ def run_training(
                     "metrics": val_metrics,
                 },
             )
+        else:
+            epochs_since_improve += 1
 
         save_checkpoint(
             checkpoints_root / run_id / "last.pt",
@@ -410,10 +434,35 @@ def run_training(
             "val": val_metrics,
         })
 
+        epochs_completed = epoch
+        if early_enabled and epoch >= max(early_warmup, 1) and epochs_since_improve >= early_patience:
+            early_stop_triggered = True
+            run_logger.write(
+                {
+                    "event": "early_stop",
+                    "epoch": epoch,
+                    "reason": "no_improvement",
+                    "patience": early_patience,
+                    "best_epoch": best_epoch,
+                    "best_val_top1": best_val_top1,
+                }
+            )
+            break
+
     if best_state is not None:
         bundle.model.load_state_dict(best_state)
 
-    test_metrics = evaluate(bundle.model, test_loader, criterion, device, bundle.amp_dtype, run_logger, epoch=total_epochs, split="test")
+    final_epoch = epochs_completed or total_epochs
+    test_metrics = evaluate(
+        bundle.model,
+        test_loader,
+        criterion,
+        device,
+        bundle.amp_dtype,
+        run_logger,
+        epoch=final_epoch,
+        split="test",
+    )
 
     elapsed = time.time() - start_time
     summary = {
@@ -423,6 +472,8 @@ def run_training(
         "test_top5": test_metrics["top5"],
         "test_macro_f1": test_metrics.get("macro_f1"),
         "wall_time_sec": elapsed,
+        "epochs_ran": epochs_completed,
+        "stopped_early": early_stop_triggered,
     }
     run_logger.finalize(summary)
 

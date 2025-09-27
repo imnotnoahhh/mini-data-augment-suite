@@ -35,6 +35,14 @@ scheduler_defaults:
   ema:
     enabled: false
 
+early_stop:
+  enabled: true
+  monitor: val/top1
+  mode: max
+  patience: 8
+  min_delta: 0.1
+  warmup_epochs: 10
+
 logging:
   use_wandb: false
   tensorboard: false
