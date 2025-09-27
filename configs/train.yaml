@@ -22,7 +22,7 @@ hardware:
 
 optimizer:
   name: adamw
-  base_lr: 0.001
+  base_lr: 3.0e-3
   betas: [0.9, 0.999]
   eps: 1.0e-8
 

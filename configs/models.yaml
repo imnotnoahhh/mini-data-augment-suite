@@ -15,7 +15,7 @@ schedulers: &schedulers
   explore:
     name: cosine
     epochs: 80
-    warmup_epochs: 5
+    warmup_epochs: 8
   confirm:
     name: onecycle
     epochs: 150
@@ -32,8 +32,8 @@ architectures:
       weight_decay: 0.05
     scheduler: *schedulers
     batch_size:
-      explore: 256
-      confirm: 192
+      explore: 512
+      confirm: 256
   resnet50:
     family: convnet
     backbone: resnet50
@@ -43,8 +43,8 @@ architectures:
       weight_decay: 0.05
     scheduler: *schedulers
     batch_size:
-      explore: 128
-      confirm: 96
+      explore: 512
+      confirm: 256
   convnext_tiny:
     family: convnext
     backbone: convnext_tiny
@@ -54,8 +54,8 @@ architectures:
       weight_decay: 0.05
     scheduler: *schedulers
     batch_size:
-      explore: 128
-      confirm: 96
+      explore: 512
+      confirm: 256
   vit_tiny:
     family: vit
     backbone: vit_tiny_patch16_224
@@ -65,8 +65,8 @@ architectures:
       weight_decay: 0.02
     scheduler: *schedulers
     batch_size:
-      explore: 96
-      confirm: 64
+      explore: 512
+      confirm: 256
     extras:
       gradient_checkpointing: false
       mixup_enabled: false
