@@ -106,7 +106,7 @@ def _create_grad_scaler(amp_enabled: bool, device: torch.device):
 def _autocast_context(device: torch.device, enabled: bool):
     if not enabled:
         return nullcontext()
-    return torch.amp.autocast(enabled=True)
+    return torch.amp.autocast(device_type=device.type, enabled=True)
 
 
 class Trainer:
