@@ -1,0 +1,39 @@
+# 占位配置：单因子阶段
+# 详细字段请对照 implementation_plan.md 中的「实现架构草案」章节补全。
+stage: single_factor
+dataset:
+  name: cifar100
+  available: [cifar100, stl10, tiny-imagenet-200]
+  train_ratio: 0.2
+  val_ratio: 0.1
+  split_seed: 0  # 单因子阶段固定划分
+  data_root: data/raw
+model:
+  name: resnet18
+  available: [resnet18, resnet50, convnext_tiny]
+training:
+  epochs: 200
+  batch_size: 256
+  num_workers: 8
+  seeds: [0, 1, 2]
+  grad_clip: null
+  amp: true
+  ema:
+    enabled: true
+    decay: 0.999
+optimizer:
+  name: sgd
+  lr: 0.2
+  weight_decay: 0.0005
+  momentum: 0.9
+lr_scheduler:
+  name: cosine
+  warmup_epochs: 0
+augmentation:
+  mode: single_factor  # 入口需根据此字段构造 transforms
+single_factor:
+  config_file: artifacts/preview_configs/cifar100_single_factor.json
+logging:
+  output_root: outputs/single_factor
+  save_metrics: true
+  save_summary: true

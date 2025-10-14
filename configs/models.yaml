@@ -1,0 +1,23 @@
+# 模型配置占位（供多架构实验共用）
+
+models:
+  resnet18:
+    family: resnet
+    variant: resnet18
+    image_size: 224
+    pretrained: false
+    notes: "主线模型，完整执行单因子→Sobol→RSM。"
+
+  resnet50:
+    family: resnet
+    variant: resnet50
+    image_size: 224
+    pretrained: false
+    notes: "仅用于泛化确认，复用主线增广结果。"
+
+  convnext_tiny:
+    family: convnext
+    variant: convnext_tiny
+    image_size: 224
+    pretrained: false
+    notes: "ConvNeXt-Tiny，补充现代 CNN 架构用于泛化确认。"

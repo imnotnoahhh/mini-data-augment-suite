@@ -1,0 +1,32 @@
+# 占位配置：RSM 局部优化阶段
+stage: rsm
+dataset:
+  name: cifar100
+  available: [cifar100, stl10, tiny-imagenet-200]
+  train_ratio: 0.2
+  val_ratio: 0.1
+  split_seed: 0
+model:
+  name: resnet18
+  available: [resnet18, resnet50, convnext_tiny]
+training:
+  epochs: 200
+  batch_size: 256
+  amp: true
+  ema:
+    enabled: true
+    decay: 0.999
+optimizer:
+  name: sgd
+  lr: 0.2
+  weight_decay: 0.0005
+  momentum: 0.9
+lr_scheduler:
+  name: cosine
+augmentation:
+  mode: rsm
+  design_matrix: artifacts/rsm/design_matrix.csv
+logging:
+  output_root: outputs/rsm
+  save_metrics: true
+  save_summary: true

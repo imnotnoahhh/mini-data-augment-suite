@@ -1,0 +1,33 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.so
+*.ipynb_checkpoints/
+
+# Virtual environments
+.env/
+.venv/
+venv/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Bytecode / cache
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Data and outputs
+artifacts/
+outputs/
+
+# Raw datasets (keep folder structure only)
+# Ignore all files under data/raw but keep directory tree
+/data/raw/**/*
+!/data/raw/
+!/data/raw/.gitkeep
+
