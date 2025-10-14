@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -13,6 +14,10 @@ import torch.nn as nn
 import yaml
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms, models
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
 
 from data.transforms import make_single_factor_transform
 from data.splits import load_split
