@@ -6,6 +6,7 @@ import csv
 import hashlib
 import json
 import random
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -14,7 +15,6 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 
 
@@ -96,6 +96,28 @@ def _set_seed(seed: int) -> None:
     torch.cuda.manual_seed_all(seed)
 
 
+def _create_grad_scaler(amp_enabled: bool, device: torch.device):
+    if not amp_enabled or device.type != "cuda":
+        return None
+    if hasattr(torch, "amp") and hasattr(torch.amp, "GradScaler"):
+        return torch.amp.GradScaler(device_type="cuda")
+    from torch.cuda.amp import GradScaler  # type: ignore
+
+    return GradScaler()
+
+
+def _autocast_context(device: torch.device, enabled: bool):
+    if not enabled:
+        return nullcontext()
+    if hasattr(torch, "amp") and hasattr(torch.amp, "autocast"):
+        return torch.amp.autocast(device_type=device.type, enabled=True)
+    if device.type == "cuda":
+        from torch.cuda.amp import autocast  # type: ignore
+
+        return autocast(enabled=True)
+    return nullcontext()
+
+
 class Trainer:
     def __init__(self, config: TrainerConfig):
         self.config = config
@@ -121,7 +143,8 @@ class Trainer:
         run_dir.mkdir(parents=True, exist_ok=True)
 
         model.to(device)
-        scaler = GradScaler(enabled=self.config.enable_amp and device.type == "cuda")
+        amp_enabled = self.config.enable_amp and device.type == "cuda"
+        scaler = _create_grad_scaler(amp_enabled, device)
         ema = EMA(model, self.config.ema_decay) if self.config.enable_ema else None
 
         best_top1 = float("-inf")
@@ -143,6 +166,7 @@ class Trainer:
                 num_classes,
                 scaler,
                 ema,
+                amp_enabled,
                 training=True,
             )
 
@@ -158,6 +182,7 @@ class Trainer:
                 num_classes,
                 scaler=None,
                 ema=ema,
+                amp_enabled=amp_enabled,
                 training=False,
             )
 
@@ -199,8 +224,9 @@ class Trainer:
         criterion: nn.Module,
         device: torch.device,
         num_classes: int,
-        scaler: Optional[GradScaler],
+        scaler: Optional[Any],
         ema: Optional[EMA],
+        amp_enabled: bool,
         training: bool,
     ) -> Dict[str, float]:
         if training:
@@ -224,10 +250,13 @@ class Trainer:
 
             if training:
                 optimizer.zero_grad(set_to_none=True)
-                with autocast(enabled=scaler is not None):
+                with _autocast_context(device, amp_enabled):
                     outputs = model(inputs)
                     loss = criterion(outputs, targets)
-                scaler.scale(loss).backward() if scaler is not None else loss.backward()
+                if scaler is not None:
+                    scaler.scale(loss).backward()
+                else:
+                    loss.backward()
                 if self.config.clip_grad_norm is not None:
                     if scaler is not None:
                         scaler.unscale_(optimizer)
@@ -240,7 +269,7 @@ class Trainer:
                 if ema is not None:
                     ema.update(model)
             else:
-                with torch.no_grad():
+                with torch.no_grad(), _autocast_context(device, amp_enabled):
                     outputs = model(inputs)
                     loss = criterion(outputs, targets)
 
