@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import inspect
 import json
 import random
 from contextlib import nullcontext
@@ -99,23 +100,13 @@ def _set_seed(seed: int) -> None:
 def _create_grad_scaler(amp_enabled: bool, device: torch.device):
     if not amp_enabled or device.type != "cuda":
         return None
-    if hasattr(torch, "amp") and hasattr(torch.amp, "GradScaler"):
-        return torch.amp.GradScaler(device_type="cuda")
-    from torch.cuda.amp import GradScaler  # type: ignore
-
-    return GradScaler()
+    return torch.amp.GradScaler(device_type=device.type)
 
 
 def _autocast_context(device: torch.device, enabled: bool):
     if not enabled:
         return nullcontext()
-    if hasattr(torch, "amp") and hasattr(torch.amp, "autocast"):
-        return torch.amp.autocast(device_type=device.type, enabled=True)
-    if device.type == "cuda":
-        from torch.cuda.amp import autocast  # type: ignore
-
-        return autocast(enabled=True)
-    return nullcontext()
+    return torch.amp.autocast(device_type=device.type, enabled=True)
 
 
 class Trainer:
