@@ -100,13 +100,19 @@ def _set_seed(seed: int) -> None:
 def _create_grad_scaler(amp_enabled: bool, device: torch.device):
     if not amp_enabled or device.type != "cuda":
         return None
-    return torch.amp.GradScaler(device_type=device.type)
+    try:
+        return torch.amp.GradScaler(device_type=device.type)
+    except TypeError:
+        return torch.amp.GradScaler()
 
 
 def _autocast_context(device: torch.device, enabled: bool):
     if not enabled:
         return nullcontext()
-    return torch.amp.autocast(device_type=device.type, enabled=True)
+    try:
+        return torch.amp.autocast(device_type=device.type, enabled=True)
+    except TypeError:
+        return torch.amp.autocast(enabled=True)
 
 
 class Trainer:
