@@ -23,6 +23,8 @@ Thumbs.db
 
 # Data and outputs
 artifacts/
+!artifacts/preview_configs/
+!artifacts/preview_configs/*.json
 outputs/
 
 # Raw datasets (keep folder structure only)
@@ -30,4 +32,3 @@ outputs/
 /data/raw/**/*
 !/data/raw/
 !/data/raw/.gitkeep
-
