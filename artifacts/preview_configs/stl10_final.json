@@ -1,0 +1,33 @@
+[
+  {
+    "label": "stl10_final_main",
+    "type": "sobol",
+    "params": {
+      "brightness": 0.22,
+      "contrast": 0.18,
+      "saturation": 0.20,
+      "hue": 0.04,
+      "crop": 6,
+      "flip": 0.5,
+      "rotation": 15,
+      "scale_delta": 0.18,
+      "erase": 0.12
+    }
+  },
+  {
+    "label": "stl10_final_variant",
+    "type": "rsm",
+    "params": {
+      "brightness": 0.18,
+      "contrast": 0.24,
+      "saturation": 0.16,
+      "hue": 0.03,
+      "crop": 8,
+      "flip": 0.55,
+      "rotation": 20,
+      "scale_low": 0.88,
+      "scale_high": 1.12,
+      "erase": 0.10
+    }
+  }
+]

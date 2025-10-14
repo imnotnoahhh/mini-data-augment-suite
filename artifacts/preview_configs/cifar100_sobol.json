@@ -1,0 +1,47 @@
+[
+  {
+    "label": "sobol_top1",
+    "type": "sobol",
+    "params": {
+      "brightness": 0.18,
+      "contrast": 0.22,
+      "saturation": 0.20,
+      "hue": 0.06,
+      "crop": 4,
+      "flip": 0.6,
+      "rotation": 12,
+      "scale_delta": 0.12,
+      "erase": 0.16
+    }
+  },
+  {
+    "label": "sobol_top2",
+    "type": "sobol",
+    "params": {
+      "brightness": 0.24,
+      "contrast": 0.18,
+      "saturation": 0.14,
+      "hue": 0.03,
+      "crop": 6,
+      "flip": 0.4,
+      "rotation": 8,
+      "scale_delta": 0.08,
+      "erase": 0.10
+    }
+  },
+  {
+    "label": "sobol_top3",
+    "type": "sobol",
+    "params": {
+      "brightness": 0.12,
+      "contrast": 0.28,
+      "saturation": 0.18,
+      "hue": 0.09,
+      "crop": 2,
+      "flip": 0.7,
+      "rotation": 20,
+      "scale_delta": 0.18,
+      "erase": 0.20
+    }
+  }
+]

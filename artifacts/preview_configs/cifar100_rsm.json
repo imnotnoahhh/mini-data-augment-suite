@@ -1,0 +1,50 @@
+[
+  {
+    "label": "rsm_candidate_a",
+    "type": "rsm",
+    "params": {
+      "brightness": 0.20,
+      "contrast": 0.24,
+      "saturation": 0.16,
+      "hue": 0.04,
+      "crop": 4,
+      "flip": 0.55,
+      "rotation": 10,
+      "scale_low": 0.88,
+      "scale_high": 1.12,
+      "erase": 0.14
+    }
+  },
+  {
+    "label": "rsm_candidate_b",
+    "type": "rsm",
+    "params": {
+      "brightness": 0.16,
+      "contrast": 0.20,
+      "saturation": 0.22,
+      "hue": 0.05,
+      "crop": 6,
+      "flip": 0.45,
+      "rotation": 14,
+      "scale_low": 0.92,
+      "scale_high": 1.10,
+      "erase": 0.12
+    }
+  },
+  {
+    "label": "rsm_candidate_c",
+    "type": "rsm",
+    "params": {
+      "brightness": 0.22,
+      "contrast": 0.18,
+      "saturation": 0.20,
+      "hue": 0.07,
+      "crop": 5,
+      "flip": 0.65,
+      "rotation": 18,
+      "scale_low": 0.90,
+      "scale_high": 1.14,
+      "erase": 0.18
+    }
+  }
+]

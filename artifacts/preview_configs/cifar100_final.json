@@ -1,0 +1,34 @@
+[
+  {"label": "baseline_no_aug", "type": "identity"},
+  {
+    "label": "final_combo_main",
+    "type": "sobol",
+    "params": {
+      "brightness": 0.19,
+      "contrast": 0.23,
+      "saturation": 0.17,
+      "hue": 0.05,
+      "crop": 4,
+      "flip": 0.6,
+      "rotation": 15,
+      "scale_delta": 0.15,
+      "erase": 0.16
+    }
+  },
+  {
+    "label": "final_combo_variant",
+    "type": "rsm",
+    "params": {
+      "brightness": 0.18,
+      "contrast": 0.20,
+      "saturation": 0.22,
+      "hue": 0.06,
+      "crop": 5,
+      "flip": 0.5,
+      "rotation": 12,
+      "scale_low": 0.90,
+      "scale_high": 1.13,
+      "erase": 0.14
+    }
+  }
+]

@@ -1,0 +1,33 @@
+[
+  {
+    "label": "tiny_imagenet_final_main",
+    "type": "sobol",
+    "params": {
+      "brightness": 0.16,
+      "contrast": 0.20,
+      "saturation": 0.18,
+      "hue": 0.05,
+      "crop": 8,
+      "flip": 0.45,
+      "rotation": 12,
+      "scale_delta": 0.12,
+      "erase": 0.14
+    }
+  },
+  {
+    "label": "tiny_imagenet_final_variant",
+    "type": "rsm",
+    "params": {
+      "brightness": 0.20,
+      "contrast": 0.22,
+      "saturation": 0.24,
+      "hue": 0.07,
+      "crop": 10,
+      "flip": 0.5,
+      "rotation": 18,
+      "scale_low": 0.92,
+      "scale_high": 1.16,
+      "erase": 0.18
+    }
+  }
+]
