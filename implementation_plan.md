@@ -95,9 +95,16 @@
 
 ### 日志与指标落盘
 - 指标表遵循「单因子实验输出结构规范」，所有阶段 append 写入 `outputs/{stage}/{run_id}/metrics.csv`；行包含 `stage`、`combo_id`、`seed`、`epoch` 等附加列，方便聚合。
-- `summary.json` 存储关键摘要：`best_val_acc`、`best_epoch`、`stop_reason`、`ema_enabled`、`lr_schedule_snapshot`。
-- `events.log` 记录早停、NaN、梯度爆炸、重试等事件，配合 `stderr` 追踪训练失败原因。
-- `analysis/gather_metrics.ipynb` 汇总 CSV，计算 mean/std/CI 并生成论文图表；Notebook 在仓库中给出模板以保证流程可复现。
+- `summary.json` 存储关键摘要：`best_val_acc`、`best_epoch`、`stop_reason`、`ema_enabled`、`lr_schedule_snapshot`。单因子阶段需额外汇总成「run 级摘要表」（按 `combo_id × seed` 聚合关键字段）。
+- `events.log` 记录早停、NaN、梯度爆炸、重试等事件，配合 `stderr` 追踪训练失败原因；在汇总报表中需要列出是否触发早停、对应原因，并与 `events.log` 交叉校验。
+- `analysis/gather_metrics.ipynb` 汇总 CSV，计算 mean/std/CI 并生成论文图表；Notebook 在仓库中给出模板以保证流程可复现。该 Notebook 现要求输出下列「必选」可视化与统计：
+  1. **操作 × 强度统计表**：字段包含 `Top-1 / Top-5 / Macro-F1 / Loss / mean / std / 95% CI / EarlyStop / Note`，确保 3 seeds 的 `mean±std±95%CI` 均计算完成。
+  2. **每个操作的强度曲线**：Top-1、Macro-F1、Loss 至少三条折线图，均需显示 95% CI（误差棒或阴影带）。
+  3. **最佳强度对比图**：按操作选取性能最优的强度档，绘制 Top-1（附带 CI）的柱状或折线图；可选在同图补充 Macro-F1。
+  4. **训练过程曲线**：基于 `metrics.csv` 绘制 Loss 与 Accuracy（Top-1/Top-5）随 epoch 变化的曲线。
+  5. **混淆矩阵**：对每个 run 输出验证集混淆矩阵可视化，并在摘要表中记录宏平均 F1（与 `summary.json` 对齐）。
+  6. **学习率曲线**：根据 `lr_schedule_snapshot` 绘制 Cosine 退火曲线，用于核对调度器行为。
+- 所有生成的图表与表格应存入 `artifacts/reports/single_factor/`（或配置指定的位置），命名中包含操作名/强度，确保后续阶段可复用。
 - `scripts/transform_smoke_test.py`、`scripts/train_smoke_test.py`、`scripts/verify_environment.py` 分别用于本地变换/训练/依赖自检，出厂前需全部通过。
 
 ### 公平性约束的落地
@@ -193,7 +200,7 @@ CI_t = \overline{x_t} \pm 1.96 \cdot \frac{s_t}{\sqrt{3}}
 
 ## 📊 单因子实验输出结构规范
 
-| **Operation** | **Strength** | **Top-1 Acc** | **Top-5 Acc** | **Macro-F1** | **Loss** | **Mean (Acc/F1)** | **Std** | **CI_low** | **CI_high** | **EarlyStop** | **Note** |
+| **Operation** | **Strength** | **Top-1 Acc** | **Top-5 Acc** | **Macro-F1** | **Loss** | **Mean (Top-1)** | **Std (Top-1)** | **CI_low** | **CI_high** | **EarlyStop** | **Note** |
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 | Brightness | 0.00 | 71.2 | 93.5 | 70.4 | 1.42 | 71.2 | 0.5 | 70.6 | 71.8 | False | Sentinel |
 | Brightness | 0.10 | 73.8 | 94.1 | 72.7 | 1.39 | 73.8 | 0.4 | 73.3 | 74.3 | False |  |
@@ -205,15 +212,11 @@ CI_t = \overline{x_t} \pm 1.96 \cdot \frac{s_t}{\sqrt{3}}
 |:-:|:-:|:-:|
 | **Operation** | 数据增强操作名称（如 Brightness / Rotation） | 每个操作单独生成一张表 |
 | **Strength** | 当前档位参数值 | 对应合法区间中的 7 档之一；Scaling 使用 δ（scale=(1−δ,1+δ)) |
-| **Top-1 Acc** | 模型在验证集上的准确率 | 主要性能指标 |
-| **Top-5 Acc** | 前 5 命中率 | 与 ImageNet 评价一致 |
-| **Macro-F1** | 各类 F1 的平均 | 更敏感于类不平衡 |
-| **Loss** | 验证集平均 CrossEntropy 损失 | 反映稳定性 |
-| **Mean (Acc/F1)** | 三个随机 seed 下的平均性能 | Acc为主指标 |
-| **Std / ±** | 标准差 (3 seeds) | 衡量波动性 |
-| **CI_low / CI_high** | 95% 置信区间上下界 (\(\overline{x} \pm 1.96 \cdot s / \sqrt{3}\)) | 用于早停判断 |
+| **Top-1 Acc / Top-5 Acc / Macro-F1 / Loss** | 三种精度指标与验证集平均损失 | 逐 seed 取值与聚合结果均需保留 |
+| **Mean / Std** | 3 seeds 的均值、标准差 | 对所有四个指标计算；Top-1 必须在表格主列呈现 |
+| **CI_low / CI_high** | 95% 置信区间上下界 (\(\overline{x} \pm 1.96 \cdot s / \sqrt{3}\)) | 同时给出四个指标的 CI，表格主列至少展示 Top-1 的区间，附录可放其余指标 |
 | **EarlyStop** | 是否触发早停 (True/False) | CI 或性能趋势下降时置 True |
-| **Note** | 特殊标记（如 Sentinel / CI下降 / Truncated） | 便于复查与后续 DOE/Sobol 截断 |
+| **Note** | 特殊标记（如 Sentinel / CI下降 / Truncated / ConfMat） | 记录早停原因、混淆矩阵摘要、异常事件等补充信息 |
 
 ---
 
