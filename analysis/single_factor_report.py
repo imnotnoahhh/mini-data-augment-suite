@@ -144,6 +144,11 @@ def generate_report(
     _generate_training_curves(records, output_dir / "plots" / "training_curves")
     _generate_learning_rate_curves(records, output_dir / "plots" / "lr_curves")
 
+    # Training / LR curve generation mutates RunRecord objects with new paths,
+    # so persist the updated information back to run_summary.csv for consumers.
+    run_df = _build_run_dataframe(records)
+    run_df.to_csv(run_summary_path, index=False)
+
     return ReportArtifacts(
         run_dataframe=run_df,
         operation_stats=op_stats,
