@@ -604,7 +604,7 @@ def _generate_best_strength_plot(best_strengths: pd.DataFrame, output_dir: Path)
     ax.set_ylabel("Top-1 (%)")
     ax.set_xlabel("Operation")
     ax.set_title("Best Strength per Operation (Top-1 ± 95% CI)")
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
     plt.tight_layout()
 
     output_path = output_dir / "best_strengths.png"
